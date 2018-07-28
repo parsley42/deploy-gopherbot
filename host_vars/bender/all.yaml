@@ -1,0 +1,3 @@
+---
+gopherbot_dynamo_table: Bender
+gopherbot_config_repository: https://github.com/parsley42/bender-gopherbot.git
