@@ -1,0 +1,7 @@
+---
+# cloudconfig.yaml - central config file for ruby-awstools library
+
+# Where to search for common definitions
+SearchPath:
+- ../aws-linuxjedi
+- ../linuxjedi-private
