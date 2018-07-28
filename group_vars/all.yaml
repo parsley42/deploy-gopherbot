@@ -1,0 +1,9 @@
+---
+gopherbot_version: "v2.0.0-snapshot"
+gopherbot_brain_key: "{{ vault_gopherbot_brain_key }}"
+gopherbot_slack_token: "{{ vault_gopherbot_slack_token }}"
+gopherbot_dynamo_key: "{{ vault_gopherbot_dynamo_key }}"
+gopherbot_dynamo_secret: "{{ vault_gopherbot_dynamo_secret }}"
+gopherbot_user: robot
+gopherbot_group: robot
+gopherbot_config_directory: "/usr/local/etc/gopherbot"

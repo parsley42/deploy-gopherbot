@@ -1,0 +1,29 @@
+---
+tags:
+  Platform: AmazonLinux2
+api_template:
+  image_id: ${@ami|${/ami/ljbase}}
+  user_data: $UserDataStandard
+  instance_type: ${@type|t2.nano}
+  key_name: ${@key|<REQUIRED>}
+  max_count: 1 # required
+  min_count: 1 # required
+  monitoring:
+    enabled: ${@monitor|false}
+  dry_run: ${@dryrun|false}
+  ebs_optimized: ${@ebsoptimized|false}
+  instance_initiated_shutdown_behavior: terminate
+  instance_market_options:
+    market_type: spot
+    spot_options:
+      spot_instance_type: one-time
+      instance_interruption_behavior: terminate
+  network_interfaces:
+  - associate_public_ip_address: true
+    subnet_id: ${=MgmtVPC:rManagementDMZSubnet#F}
+    groups:
+    - ${=MgmtVPC:SecurityGroups:rSecurityGroupBastion=AWS::EC2::SecurityGroup}
+    - ${=MgmtVPC:SecurityGroups:rSecurityGroupSSHFromMgmt=AWS::EC2::SecurityGroup}
+    - ${=C9SSHAccess:USEastCloud9SecurityGroup0=AWS::EC2::SecurityGroup}
+    delete_on_termination: true
+    device_index: 0

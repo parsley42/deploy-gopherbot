@@ -1,0 +1,29 @@
+---
+- hosts: "{{ target }}"
+  name: Group by platform
+  remote_user: "{{ remote_user | default('build') }}"
+  tasks:
+  - name: Adjust major version for Amazon Linux 2
+    set_fact:
+      ansible_distribution_major_version: 2
+    when: ansible_kernel | search("amzn2")
+  - group_by:
+      key: "dist_{{ ansible_distribution }}_{{ ansible_distribution_major_version }}"
+
+- hosts: dist_CentOS_7
+  connection: local
+  name: Set CentOS7 build Variables
+  tasks:
+  - set_fact:
+      build_remote: centos
+      sudoers_file: /etc/sudoers.d/90-cloud-init-users
+      new_fs_type: xfs
+
+- hosts: dist_Amazon_2
+  connection: local
+  name: Set Amazon Linux 2 build Variables
+  tasks:
+  - set_fact:
+      build_remote: ec2-user
+      sudoers_file: /etc/sudoers.d/90-cloud-init-users
+      new_fs_type: xfs

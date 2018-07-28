@@ -1,0 +1,156 @@
+---
+# aws_init.yaml - playbook for initial setup of a newly-created instance.
+# Designed to work with instances created by ruby-awstools, especially those
+# having a single monolithic data volume.
+#
+# Responsible for:
+# - Initializing ssh
+# - Creating common 'build' user
+# - Removing the AWS build user (centos,ec2_user, etc.)
+#
+# Must be called with '-e target=<ansible host name>'
+#
+# NOTE: probing for the remote user will not work if this playbook is run with
+# --key-file <foo>; instead, your ~/.ssh/config file should include the
+# appropriate Host and Match lines to select the correct key. This also means
+# the transport will need to be "ssh", and not "paramiko".
+#
+# Example ssh config:
+# Match host *.<myawsdom> user ec2-user,centos,ubuntu,build
+#     IdentityFile ~/.ssh/<buildkey>.pem
+# Host *.<myawsdom>
+#     CheckHostIp no
+#     User <normalusername>
+#     IdentityFile ~/.ssh/<normalsshkey>
+
+- hosts: "{{ target }}"
+  name: Wait for DNS and get initial SSH keys
+  connection: local
+  vars_files:
+  - cloudconfig.yaml
+  serial: 1
+  tasks:
+  # Make sure ansible will connect to the correct host
+  - name: Waiting for DNS to sync
+    command: echo
+    until: "lookup('dig', ansible_host ) == ec2_private_ip_address or lookup('dig', ansible_host ) == ec2_ip_address"
+    retries: 60
+    delay: 7
+    changed_when: false
+    when: ec2_ip_address is defined
+  - name: Wait for SSH
+    wait_for: host={{ ansible_host }} port=22 search_regex=OpenSSH
+  - name: Pause for ssh to restart
+    pause: seconds=60
+
+- hosts: "{{ target }}"
+  name: Probe for remote user
+  gather_facts: no
+  connection: local
+  tasks:
+  - name: "Probe for user: centos"
+    ignore_errors: true
+    command: ssh -o StrictHostKeyChecking=false centos@{{ ansible_host }} whoami
+    register: result
+  - name: Set remote user to centos
+    set_fact:
+      remote_user: centos
+    when: result|succeeded
+  - name: "Probe for user: ec2-user"
+    ignore_errors: true
+    command: ssh -o StrictHostKeyChecking=false ec2-user@{{ ansible_host }} whoami
+    register: result
+  - name: Set remote user to ec2-user
+    set_fact:
+      remote_user: ec2-user
+    when: result|succeeded
+  - name: "Probe for user: ubuntu"
+    ignore_errors: true
+    command: ssh -o StrictHostKeyChecking=false ubuntu@{{ ansible_host }} whoami
+    register: result
+  - name: Set remote user to ubuntu
+    set_fact:
+      remote_user: ubuntu
+    when: result|succeeded
+
+# platform-specific definitions including data volumes
+- import_playbook: platform-vars.yaml
+
+- hosts: "{{ target }}"
+  name: Set up the build user
+  environment:
+    TMPDIR: /root
+  become: yes
+  remote_user: "{{ build_remote }}"
+  tasks:
+  - name: Create temporary build user
+    user:
+      name: build
+      system: yes
+      # Make sure it's not on the data volume
+      home: /build
+  - name: Get authorized_key
+    command: cat /home/{{ build_remote }}/.ssh/authorized_keys
+    register: buildkey
+  - name: Add authorized keys
+    authorized_key:
+      user: build
+      key: "{{ item }}"
+    with_items: "{{ buildkey.stdout_lines }}"
+  - name: Fix selinux context for home dir
+    file:
+      path: /build
+      state: directory
+      seuser: system_u
+      setype: user_home_t
+      recurse: yes
+  - name: Give root access to build user
+    lineinfile: "dest={{ sudoers_file }} state=present regexp='^build' line='build ALL=(ALL) NOPASSWD: ALL'"
+
+# Generate new host keys or restore previous
+- hosts: "{{ target }}"
+  name: Re-use old host keys or store new ones
+  become: yes
+  remote_user: build
+  tasks:
+  - local_action: stat path="files/hostkeys/{{ inventory_hostname }}.tar.gz"
+    register: hkeys
+  - block:
+    - name: Create archive of host keys
+      shell: tar czf /tmp/{{ inventory_hostname }}-keys.tar.gz ssh_host_*
+      args:
+        chdir: /etc/ssh
+    - name: Fetch host keys
+      fetch: src=/tmp/{{ inventory_hostname }}-keys.tar.gz dest=files/hostkeys/{{ inventory_hostname }}.tar.gz flat=yes
+    when: hkeys.stat is defined and not hkeys.stat.exists
+  - block:
+    - name: Restore host keys
+      unarchive: src=files/hostkeys/{{ inventory_hostname }}.tar.gz dest=/etc/ssh
+    - name: Restart SSH to read host keys
+      service: name=sshd state=restarted
+    when: hkeys.stat is defined and hkeys.stat.exists
+
+# Make sure we have the host keys
+- hosts: "{{ target }}"
+  name: Update local known_hosts after restoring old hostkeys
+  connection: local
+  serial: 1
+  tasks:
+  - block:
+    - name: Scan for updated host keys
+      command: ssh-keyscan {{ ansible_host }}
+      register: hostkeys
+    - name: Add updated host keys to known_hosts
+      known_hosts: name={{ ansible_host }} state=present key={{ item }}
+      with_items: '{{ hostkeys.stdout_lines|default([]) }}'
+
+- hosts: "{{ target }}"
+  become: yes
+  remote_user: build
+  tasks:
+  - name: Hostname
+    hostname: name={{ ansible_ssh_host }}
+  - name: Hosts file
+    lineinfile: dest=/etc/hosts regexp='^127\.0\.0\.1' line='127.0.0.1 {{ ansible_ssh_host }} localhost.localdomain localhost'
+  - name: sysconfig network
+    lineinfile: 'dest=/etc/sysconfig/network regexp="^HOSTNAME=" line="HOSTNAME={{ ansible_ssh_host }}"'
