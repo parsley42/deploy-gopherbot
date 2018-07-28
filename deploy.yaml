@@ -8,6 +8,7 @@
 
 - hosts: "{{ target }}"
   name: Install Gopherbot
+  remote_user: build
   become: yes
   tasks:
   - name: Create robot private group
@@ -27,12 +28,6 @@
       mode: 0700
   - name: Clone the config repository
     block:
-    - copy:
-        src: "files/{{ inventory_hostname }}/deploy/id_rsa"
-        dest: "{{ gopherbot_home }}/.ssh/deploy_rsa"
-        owner: "{{ gopherbot_user }}"
-        group: "{{ gopherbot_group }}"
-        mode: 0600
     - yum:
         name: git
         state: present
@@ -44,14 +39,19 @@
         mode: 0750
     - git:
         repo: "{{ gopherbot_config_repository }}"
-        accept_hostkey: yes
         dest: "{{ gopherbot_config_directory }}"
-        key_file: "{{ gopherbot_home }}/.ssh/deploy_rsa"
       become_user: "{{ gopherbot_user }}"
   - name: Install the robot's SSH key
     copy:
-        src: "files/{{ inventory_hostname }}/robot/id_rsa"
+        src: "files/{{ inventory_hostname }}/id_rsa"
         dest: "{{ gopherbot_home }}/.ssh/id_rsa"
+        owner: "{{ gopherbot_user }}"
+        group: "{{ gopherbot_group }}"
+        mode: 0600
+  - name: Install the robot's SSH config
+    copy:
+        src: "files/{{ inventory_hostname }}/ssh-config"
+        dest: "{{ gopherbot_home }}/.ssh/config"
         owner: "{{ gopherbot_user }}"
         group: "{{ gopherbot_group }}"
         mode: 0600

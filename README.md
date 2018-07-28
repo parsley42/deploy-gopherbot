@@ -3,6 +3,7 @@ This is the project repository for deploying Floyd and Bender, the production an
 ## Contents
 
 * cloudconfig.yaml - data file used with `ruby-awstools` for managing cloudformation templates and ec2 instances
+* static-hosts - scriptlet that tells Ansible to use `ansible_hosts.yaml`, for Cloud9 native instances where dynamic inventory doesn't work
 
 ## External Requirements
 

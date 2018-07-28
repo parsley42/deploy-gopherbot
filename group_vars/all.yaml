@@ -7,3 +7,5 @@ gopherbot_dynamo_secret: "{{ vault_gopherbot_dynamo_secret }}"
 gopherbot_user: robot
 gopherbot_group: robot
 gopherbot_config_directory: "/usr/local/etc/gopherbot"
+gopherbot_home: /home/robot
+gopherbot_dynamo_region: us-east-1
