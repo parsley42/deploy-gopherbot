@@ -1,0 +1,5 @@
+# AWS Hosts tend to come and go...
+Host *.linuxjedi.org
+        StrictHostKeyChecking false
+        UserKnownHostsFile /dev/null
+        CheckHostIP false
