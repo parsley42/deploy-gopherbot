@@ -7,6 +7,43 @@
     when: target is undefined
 
 - hosts: "{{ target }}"
+  name: Set vars and wait for DNS
+  connection: local
+  tasks:
+  - name: Waiting for DNS to sync
+    command: echo
+    until: "lookup('dig', ansible_host ) == ec2_private_ip_address or lookup('dig', ansible_host ) == ec2_ip_address"
+    retries: 60
+    delay: 7
+    changed_when: false
+    when: ec2_ip_address is defined
+  - name: Wait for SSH
+    wait_for: host={{ ansible_host }} port=22 search_regex=OpenSSH
+
+# Generate new host keys or restore previous
+- hosts: "{{ target }}"
+  name: Re-use old host keys or store new ones
+  become: yes
+  remote_user: build
+  tasks:
+  - local_action: stat path="files/hostkeys/{{ inventory_hostname }}.tar.gz"
+    register: hkeys
+  - block:
+    - name: Create archive of host keys
+      shell: tar czf /tmp/{{ inventory_hostname }}-keys.tar.gz ssh_host_*
+      args:
+        chdir: /etc/ssh
+    - name: Fetch host keys
+      fetch: src=/tmp/{{ inventory_hostname }}-keys.tar.gz dest=files/hostkeys/{{ inventory_hostname }}.tar.gz flat=yes
+    when: hkeys.stat is defined and not hkeys.stat.exists
+  - block:
+    - name: Restore host keys
+      unarchive: src=files/hostkeys/{{ inventory_hostname }}.tar.gz dest=/etc/ssh
+    - name: Restart SSH to read host keys
+      service: name=sshd state=restarted
+    when: hkeys.stat is defined and hkeys.stat.exists
+
+- hosts: "{{ target }}"
   name: Install Gopherbot
   remote_user: build
   become: yes
@@ -57,3 +94,14 @@
         mode: 0600
   - import_role:
       name: lnxjedi.gopherbot
+
+- hosts: "{{ target }}"
+  become: yes
+  remote_user: build
+  tasks:
+  - name: Hostname
+    hostname: name={{ ansible_ssh_host }}
+  - name: Hosts file
+    lineinfile: dest=/etc/hosts regexp='^127\.0\.0\.1' line='127.0.0.1 {{ ansible_ssh_host }} localhost.localdomain localhost'
+  - name: sysconfig network
+    lineinfile: 'dest=/etc/sysconfig/network regexp="^HOSTNAME=" line="HOSTNAME={{ ansible_ssh_host }}"'

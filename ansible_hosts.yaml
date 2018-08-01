@@ -1,6 +1,6 @@
 all: # keys must be unique, i.e. only one 'hosts' per group
-    hosts:
-        floyd:
-            ansible_host: floyd.linuxjedi.org
-        bender:
-            ansible_host: bender.linuxjedi.org
+  hosts:
+    floyd:
+      ansible_host: floyd.linuxjedi.org
+    bender:
+      ansible_host: bender.linuxjedi.org
