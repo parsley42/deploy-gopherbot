@@ -86,13 +86,20 @@
         repo: "{{ gopherbot_config_repository }}"
         dest: "{{ gopherbot_config_directory }}"
       become_user: "{{ gopherbot_user }}"
-  - name: Install the robot's SSH key
+  - name: Install the robot's SSH private key
     copy:
         src: "files/{{ inventory_hostname }}/id_rsa"
         dest: "{{ gopherbot_home }}/.ssh/id_rsa"
         owner: "{{ gopherbot_user }}"
         group: "{{ gopherbot_group }}"
         mode: 0600
+  - name: Install the robot's SSH public key
+    copy:
+        src: "files/{{ inventory_hostname }}/id_rsa.pub"
+        dest: "{{ gopherbot_home }}/.ssh/id_rsa.pub"
+        owner: "{{ gopherbot_user }}"
+        group: "{{ gopherbot_group }}"
+        mode: 0644
   - name: Install the robot's SSH config
     copy:
         src: "files/{{ inventory_hostname }}/ssh-config"
