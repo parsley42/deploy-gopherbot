@@ -20,6 +20,17 @@
   - name: Wait for SSH
     wait_for: host={{ ansible_host }} port=22 search_regex=OpenSSH
 
+- hosts: "{{ target }}"
+  become: yes
+  remote_user: build
+  tasks:
+  - name: Hostname
+    hostname: name={{ ansible_ssh_host }}
+  - name: Hosts file
+    lineinfile: dest=/etc/hosts regexp='^127\.0\.0\.1' line='127.0.0.1 {{ ansible_ssh_host }} localhost.localdomain localhost'
+  - name: sysconfig network
+    lineinfile: 'dest=/etc/sysconfig/network regexp="^HOSTNAME=" line="HOSTNAME={{ ansible_ssh_host }}"'
+
 # Generate new host keys or restore previous
 - hosts: "{{ target }}"
   name: Re-use old host keys or store new ones
@@ -65,9 +76,6 @@
       mode: 0700
   - name: Clone the config repository
     block:
-    - yum:
-        name: git
-        state: present
     - file:
         path: "{{ gopherbot_config_directory }}"
         state: directory
@@ -94,14 +102,3 @@
         mode: 0600
   - import_role:
       name: lnxjedi.gopherbot
-
-- hosts: "{{ target }}"
-  become: yes
-  remote_user: build
-  tasks:
-  - name: Hostname
-    hostname: name={{ ansible_ssh_host }}
-  - name: Hosts file
-    lineinfile: dest=/etc/hosts regexp='^127\.0\.0\.1' line='127.0.0.1 {{ ansible_ssh_host }} localhost.localdomain localhost'
-  - name: sysconfig network
-    lineinfile: 'dest=/etc/sysconfig/network regexp="^HOSTNAME=" line="HOSTNAME={{ ansible_ssh_host }}"'
