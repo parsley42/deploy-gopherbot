@@ -66,6 +66,7 @@
   - name: Create user for robot
     user:
       name: "{{ gopherbot_user }}"
+      groups: [ "wheel" ]
       system: yes
   - name: Create ssh directory
     file:
