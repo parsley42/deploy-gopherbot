@@ -4,7 +4,7 @@ tags:
 api_template:
   image_id: ${@ami|${/ami/amzn2base}}
   user_data: $UserDataStandard
-  instance_type: ${@type|c4.large}
+  instance_type: ${@type|c5.large}
   key_name: ${@key|<REQUIRED>}
   max_count: 1 # required
   min_count: 1 # required
