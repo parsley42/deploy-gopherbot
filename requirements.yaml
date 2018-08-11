@@ -1,0 +1,4 @@
+---
+- src: https://github.com/lnxjedi/ansible-role-gopherbot
+  version: master
+  name: lnxjedi.gopherbot
