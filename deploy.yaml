@@ -22,7 +22,6 @@
 
 - hosts: "{{ target }}"
   become: yes
-  remote_user: build
   tasks:
   - name: Hostname
     hostname: name={{ ansible_ssh_host }}
@@ -35,7 +34,6 @@
 - hosts: "{{ target }}"
   name: Re-use old host keys or store new ones
   become: yes
-  remote_user: build
   tasks:
   - local_action: stat path="files/hostkeys/{{ inventory_hostname }}.tar.gz"
     register: hkeys
@@ -55,8 +53,28 @@
     when: hkeys.stat is defined and hkeys.stat.exists
 
 - hosts: "{{ target }}"
+  name: Add devel user(s)
+  become: yes
+  tasks:
+  - name: Create group
+    group:
+      name: "{{ item.username }}"
+    with_items: "{{ users }}"
+  - name: Create user
+    user:
+      name: "{{ item.username }}"
+      uid: "{{ item.uid }}"
+      groups: "{{ item.groups }}"
+      comment: "{{ item.name }}"
+    with_items: "{{ users }}"
+  - name: Add ssh public key(s)
+    authorized_key:
+      user: "{{ item.username }}"
+      key: "{{ item.ssh_key }}"
+    with_items: "{{ users }}"
+
+- hosts: "{{ target }}"
   name: Install Gopherbot
-  remote_user: build
   become: yes
   tasks:
   - name: Create robot private group
