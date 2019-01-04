@@ -2,7 +2,7 @@
 tags:
   Platform: Fedora 28
 api_template:
-  image_id: ${@ami|${/ami/f28base}}
+  image_id: ${@ami|${/ami/amzn2base}}
   user_data: $UserDataStandard
   instance_type: ${@type|t2.nano}
   key_name: ${@key|<REQUIRED>}
