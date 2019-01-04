@@ -1,3 +1,2 @@
 ---
-gopherbot_dynamo_table: Floyd
-gopherbot_config_repository: https://github.com/parsley42/floyd-gopherbot.git
+gopherbot_environment: "{{ vault_gopherbot_environment }}"

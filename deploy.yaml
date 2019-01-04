@@ -80,12 +80,11 @@
   - name: Create robot private group
     group:
       name: "{{ gopherbot_group }}"
-      system: yes
   - name: Create user for robot
     user:
       name: "{{ gopherbot_user }}"
+      group: "{{ gopherbot_group }}"
       groups: [ "wheel" ]
-      system: yes
   - name: Create ssh directory
     file:
       path: "{{ gopherbot_home }}/.ssh"
@@ -93,18 +92,6 @@
       group: "{{ gopherbot_group }}"
       state: directory
       mode: 0700
-  - name: Clone the config repository
-    block:
-    - file:
-        path: "{{ gopherbot_config_directory }}"
-        state: directory
-        owner: "{{ gopherbot_user }}"
-        group: "{{ gopherbot_group }}"
-        mode: 0750
-    - git:
-        repo: "{{ gopherbot_config_repository }}"
-        dest: "{{ gopherbot_config_directory }}"
-      become_user: "{{ gopherbot_user }}"
   - name: Install the robot's SSH private key
     copy:
         src: "files/{{ inventory_hostname }}/id_rsa"
