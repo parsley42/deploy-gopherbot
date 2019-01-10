@@ -1,5 +1,11 @@
 This is the project repository for deploying Floyd and Bender, the production and development Gopherbot instances in use at LinuxJedi.org. Published on GitHub based on my belief that working examples are the best documentation.
 
+## Updating Floyd
+From the Cloud9 'parsley' workstation:
+```
+parsley:~/git/deploy-gopherbot (master) $ ansible-playbook deploy.yaml -e target=floyd -e gopherbot_force_update=true
+```
+
 ## Contents
 
 * cloudconfig.yaml - data file used with `ruby-awstools` for managing cloudformation templates and ec2 instances
